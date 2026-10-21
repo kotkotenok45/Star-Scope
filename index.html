@@ -45,6 +45,17 @@
       .chip-rel { background: var(--green-bg); color: var(--green); font-weight: 600; }
       .gh-link { position: absolute; top: 14px; right: 14px; font-size: .72rem; font-weight: 600; padding: 5px 10px; border-radius: 10px; border: 1px solid var(--border); text-decoration: none; background: var(--card); z-index: 1; }
       .gh-link:hover { border-color: var(--accent); background: var(--accent); color: #fff; }
+      .tabs { display: flex; gap: 4px; }
+      .tab { border: none; background: none; font-weight: 600; color: var(--muted); padding: 8px 14px; border-radius: 99px; }
+      .tab.active { background: var(--accent); color: #fff; }
+      .tab:hover { border: none; background: var(--code); color: var(--text); }
+      .tab.active:hover { background: var(--accent-h); }
+      .like-btn { border: 1px solid var(--border); background: none; font-size: .72rem; padding: 3px 10px; border-radius: 99px; color: var(--muted); }
+      .like-btn.liked { background: #fee2e2; color: #ef4444; border-color: #fecaca; }
+      [data-theme="dark"] .like-btn.liked { background: #7f1d1d; color: #fca5a5; border-color: #991b1b; }
+      .chip-rec { background: var(--green-bg); color: var(--green); font-weight: 600; }
+      .rec-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; font-size: .9rem; color: var(--muted); }
+      .empty { text-align: center; padding: 60px 20px; color: var(--muted); line-height: 1.7; }
       .notice { padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; font-size: .85rem; background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
       [data-theme="dark"] .notice { background: #451a03; color: #fcd34d; border-color: #92400e; }
       .skeleton { height: 170px; border-radius: 16px; background: var(--card); animation: pulse 1.2s ease-in-out infinite; }
@@ -98,6 +109,10 @@
           <svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 0a8 8 0 00-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.49-2.7-1.07-2.7-1.07-.36-.94-.89-1.19-.89-1.19-.73-.5.05-.49.05-.49.81.06 1.24.83 1.24.83.72 1.24 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.83-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 014 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.52.56.83 1.27.83 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.19c0 .21.15.46.55.38A8 8 0 0016 8a8 8 0 00-8-8z"/></svg>
           StarScope
         </div>
+        <nav class="tabs">
+          <button class="tab active" id="tabTop">🔥 Топ</button>
+          <button class="tab" id="tabForyou">✨ Для вас</button>
+        </nav>
         <div class="spacer"></div>
         <input id="search" placeholder="Поиск проекта…" style="width:220px" />
         <select id="sort">
@@ -118,6 +133,9 @@
       const PER_PAGE = 50;
       let repos = [], page = 1, hasMore = true, loading = false, current = null;
       let readme = null, translated = null, targetLang = "ru";
+      let tab = "top";
+      let likes = {};
+      try { likes = JSON.parse(localStorage.getItem("starscope_likes") || "{}"); } catch (e) { likes = {}; }
       const LANG_COLORS = { JavaScript:"#f1e05a", TypeScript:"#3178c6", Python:"#3572A5", Java:"#b07219", "C++":"#f34b7d", C:"#555555", "C#":"#178600", Go:"#00ADD8", Rust:"#dea584", Ruby:"#701516", PHP:"#4F5D95", Shell:"#89e051", HTML:"#e34c26", CSS:"#563d7c", Swift:"#F05138", Kotlin:"#A97BFF", Dart:"#00B4AB", Vue:"#41b883", Zig:"#ec915c", Lua:"#000080", Haskell:"#5e5086", Elixir:"#6e4a7e", Scala:"#c22d40", Jupyter:"#DA5B0B" };
       const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
       const fmt = n => n>=1e6 ? (n/1e6).toFixed(1).replace(".0","")+"M" : n>=1e3 ? (n/1e3).toFixed(1).replace(".0","")+"k" : String(n);
@@ -224,11 +242,12 @@
           '<span><svg class="star" viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.6z"/></svg>'+fmt(r.stargazers_count)+'</span>'+
           '<span>Updated: '+new Date(r.updated_at || Date.now()).toLocaleDateString("ru-RU")+'</span>'+
           '</div>'+
-          '<div class="chips">'+(r.__relHtml || "")+(r.topics||[]).slice(0,4).map(t=>'<span class="chip">'+esc(t)+'</span>').join("")+'</div>'+
+          '<div class="chips">'+(r.__relHtml || "")+(r.topics||[]).slice(0,4).map(t=>'<span class="chip">'+esc(t)+'</span>').join("")+'<button class="like-btn'+(likes[r.full_name]?" liked":"")+'" data-like="'+esc(r.full_name)+'">'+(likes[r.full_name]?"♥ В избранном":"♡ Нравится")+'</button></div>'+
           '</div></div></div>';
       }
 
       function renderList() {
+        if (tab !== "top") return;
         const app = document.getElementById("app");
         const q = document.getElementById("search").value.toLowerCase();
         const mode = document.getElementById("sort").value;
@@ -241,11 +260,7 @@
         app.innerHTML = (window.__notice ? '<div class="notice">'+window.__notice+'</div>' : "") +
           '<div class="grid">'+list.map(card).join("")+'</div>' +
           '<div id="sentinel">'+(hasMore ? '<span class="spinner"></span>Загрузка ещё проектов…' : (list.length ? "Показаны все найденные проекты · всего " + list.length : "Ничего не найдено 🤷"))+'</div>';
-        app.querySelectorAll(".card").forEach(c => {
-          c.onclick = e => { if (!e.target.closest(".gh-link")) openRepo(c.dataset.repo); };
-          const gh = c.querySelector(".gh-link");
-          if (gh) gh.onclick = e => e.stopPropagation();
-        });
+        wireCards(app);
         if (hasMore) {
           const sentinel = document.getElementById("sentinel");
           if (!window.__io) window.__io = new IntersectionObserver(entries => {
@@ -293,7 +308,7 @@
       }
 
       async function openRepo(fullName) {
-        current = repos.find(r => r.full_name === fullName);
+        current = repos.find(r => r.full_name === fullName) || (window.__recsList || []).find(r => r.full_name === fullName);
         readme = null; translated = null;
         const r = current;
         document.getElementById("app").innerHTML = '<div style="max-width:820px;margin:0 auto">'+
@@ -314,6 +329,7 @@
           '<a class="btn-green btn-big" href="'+r.html_url+'" target="_blank" rel="noreferrer">⬇ Перейти на проект</a>'+
           '<a class="btn-primary btn-big" href="'+r.html_url+'/releases" target="_blank" rel="noreferrer">🚀 Releases</a>'+
           '<a class="btn-ghost btn-big" href="'+r.html_url+'/issues" target="_blank" rel="noreferrer">🐛 Issues</a>'+
+          '<button class="btn-ghost btn-big" id="likeBtn" style="'+(likes[r.full_name]?"color:#ef4444;border-color:#fecaca;":"")+'">'+(likes[r.full_name]?"♥ В избранном":"♡ Нравится")+'</button>'+
           '</div>'+
           '</div></div>'+
           '<div id="relbox" class="rel-box"><h3><span class="rel-badge">📦</span> Releases</h3><p class="rel-latest"><span class="spinner"></span>Проверка релизов…</p></div>'+
@@ -330,10 +346,17 @@
           '</div>'+
           '<p class="footer">Источник: github.com/'+esc(r.full_name)+' · Данные принадлежат авторам репозитория</p>'+
           '</div>';
-        document.getElementById("back").onclick = () => { current = null; renderList(); };
+        document.getElementById("back").onclick = () => { current = null; if (tab === "top") renderList(); else renderForYou(true); };
         document.getElementById("lang").onchange = e => targetLang = e.target.value;
         document.getElementById("tr").onclick = doTranslate;
         document.getElementById("orig").onclick = () => { translated = null; renderReadme(); };
+        document.getElementById("likeBtn").onclick = () => {
+          toggleLike(fullName);
+          const b = document.getElementById("likeBtn");
+          b.textContent = likes[fullName] ? "♥ В избранном" : "♡ Нравится";
+          b.style.color = likes[fullName] ? "#ef4444" : "";
+          b.style.borderColor = likes[fullName] ? "#fecaca" : "";
+        };
 
         fetchReleases(fullName).then(rel => {
           const box = document.getElementById("relbox");
@@ -382,13 +405,115 @@
         }
       }
 
-      document.getElementById("search").addEventListener("input", () => { if (!current) renderList(); });
-      document.getElementById("sort").addEventListener("change", () => { if (!current) renderList(); });
+      function wireCards(root) {
+        root.querySelectorAll(".card").forEach(c => {
+          c.onclick = e => { if (!e.target.closest(".gh-link")) openRepo(c.dataset.repo); };
+          const gh = c.querySelector(".gh-link");
+          if (gh) gh.onclick = e => e.stopPropagation();
+          c.querySelectorAll(".like-btn").forEach(b => b.onclick = e => { e.stopPropagation(); toggleLike(b.dataset.like); });
+        });
+        const rb = document.getElementById("refreshRecs");
+        if (rb) rb.onclick = () => { window.__recs = null; renderForYou(false); };
+      }
+
+      function toggleLike(fullName) {
+        if (likes[fullName]) {
+          delete likes[fullName];
+        } else {
+          const r = repos.concat(window.__recsList || []).find(x => x.full_name === fullName);
+          if (r) likes[fullName] = { full_name: r.full_name, name: r.name, description: r.description, stargazers_count: r.stargazers_count, language: r.language, topics: (r.topics || []).slice(0, 8), owner: { login: r.owner.login, avatar_url: r.owner.avatar_url }, html_url: r.html_url, forks_count: r.forks_count || 0, updated_at: r.updated_at };
+        }
+        try { localStorage.setItem("starscope_likes", JSON.stringify(likes)); } catch (e) {}
+        if (!current) { if (tab === "top") renderList(); else renderForYou(true); }
+      }
+
+      function setTab(t) {
+        tab = t;
+        document.getElementById("tabTop").classList.toggle("active", t === "top");
+        document.getElementById("tabForyou").classList.toggle("active", t === "foryou");
+        document.getElementById("search").style.display = t === "top" ? "" : "none";
+        document.getElementById("sort").style.display = t === "top" ? "" : "none";
+        if (!current) { if (t === "top") renderList(); else renderForYou(true); }
+      }
+
+      async function renderForYou(useCache) {
+        const app = document.getElementById("app");
+        const liked = Object.values(likes);
+        if (!liked.length) {
+          app.innerHTML = '<div class="empty"><div style="font-size:3rem">✨</div><h2 style="font-weight:800;margin:12px 0">Здесь появятся рекомендации</h2><p>Откройте вкладку «🔥 Топ» и нажмите «♡ Нравится» на карточках проектов —<br>StarScope подберёт похожие репозитории по языкам, темам и авторам.</p></div>';
+          return;
+        }
+        const key = Object.keys(likes).sort().join("|");
+        if (useCache && window.__recs && window.__recs.key === key && Date.now() - window.__recs.time < 600000) {
+          app.innerHTML = window.__recs.html;
+          wireCards(app);
+          return;
+        }
+        const head = '<div class="rec-head">✨ Подобрано на основе ' + liked.length + ' ' + (liked.length === 1 ? "лайка" : "лайков") + ' — по языкам, темам и авторам <button id="refreshRecs" class="btn-ghost">↻ Обновить</button></div>';
+        app.innerHTML = head + '<div class="grid">' + Array(9).fill('<div class="skeleton"></div>').join("") + '</div>';
+        const langs = {}, topicsAll = {}, owners = {};
+        liked.forEach(r => {
+          if (r.language) langs[r.language] = (langs[r.language] || 0) + 1;
+          (r.topics || []).forEach(t => topicsAll[t] = (topicsAll[t] || 0) + 1);
+          if (r.owner && r.owner.login) owners[r.owner.login] = (owners[r.owner.login] || 0) + 1;
+        });
+        const topLangs = Object.entries(langs).sort((a,b) => b[1]-a[1]).slice(0, 2).map(x => x[0]);
+        const topTopics = Object.entries(topicsAll).sort((a,b) => b[1]-a[1]).slice(0, 3).map(x => x[0]);
+        const topOwners = Object.entries(owners).sort((a,b) => b[1]-a[1]).slice(0, 2).map(x => x[0]);
+        const seen = {}, cands = [];
+        const score = r => {
+          let s = 0;
+          if (langs[r.language]) s += 3 * langs[r.language];
+          (r.topics || []).forEach(t => { if (topicsAll[t]) s += 2 * topicsAll[t]; });
+          if (r.owner && owners[r.owner.login]) s += 8 * owners[r.owner.login];
+          return s;
+        };
+        const add = r => {
+          if (!r || !r.full_name || likes[r.full_name] || seen[r.full_name]) return;
+          const sc = score(r);
+          if (sc <= 0) return;
+          seen[r.full_name] = 1;
+          const parts = [];
+          if (r.owner && owners[r.owner.login]) parts.push("автор " + r.owner.login);
+          const t = (r.topics || []).find(x => topicsAll[x]);
+          if (t) parts.push("тема " + t);
+          if (langs[r.language]) parts.push("язык " + r.language);
+          r.__relHtml = '<span class="chip chip-rec">✨ ' + esc(parts.slice(0, 2).join(", ")) + '</span>';
+          r.__score = sc;
+          cands.push(r);
+        };
+        const jobs = [];
+        topTopics.slice(0, 2).forEach(t => jobs.push(
+          fetch(GH + "/search/repositories?q=topic:" + encodeURIComponent(t) + "+stars:>1000&sort=stars&order=desc&per_page=25").then(r => r.ok ? r.json() : { items: [] }).catch(() => ({ items: [] }))
+            .then(j => (j.items || []).forEach(add))
+        ));
+        topLangs.slice(0, 1).forEach(l => jobs.push(
+          fetch(GH + "/search/repositories?q=language:" + encodeURIComponent(l) + "+stars:>10000&sort=stars&order=desc&per_page=30").then(r => r.ok ? r.json() : { items: [] }).catch(() => ({ items: [] }))
+            .then(j => (j.items || []).forEach(add))
+        ));
+        topOwners.slice(0, 2).forEach(o => jobs.push(
+          fetch(GH + "/users/" + encodeURIComponent(o) + "/repos?sort=stars&per_page=15").then(r => r.ok ? r.json() : []).catch(() => [])
+            .then(items => (Array.isArray(items) ? items : []).forEach(add))
+        ));
+        await Promise.all(jobs);
+        cands.sort((a, b) => (b.__score - a.__score) || (b.stargazers_count - a.stargazers_count));
+        const list = cands.slice(0, 24);
+        window.__recsList = list;
+        const html = head + '<div class="grid">' + list.map(card).join("") + '</div>' +
+          (list.length ? "" : '<div class="empty">Пока не нашлось похожих проектов — добавьте больше лайков.</div>');
+        window.__recs = { html: html, time: Date.now(), key: key };
+        if (tab === "foryou" && !current) { app.innerHTML = html; wireCards(app); }
+      }
+
+      document.getElementById("search").addEventListener("input", () => { if (!current && tab === "top") renderList(); });
+      document.getElementById("sort").addEventListener("change", () => { if (!current && tab === "top") renderList(); });
       document.getElementById("theme").onclick = e => {
         const dark = document.body.dataset.theme === "dark";
         document.body.dataset.theme = dark ? "light" : "dark";
         e.target.textContent = dark ? "🌙" : "☀️";
       };
+      document.getElementById("tabTop").onclick = () => setTab("top");
+      document.getElementById("tabForyou").onclick = () => setTab("foryou");
       loadMore();
     </script>
   </body>
